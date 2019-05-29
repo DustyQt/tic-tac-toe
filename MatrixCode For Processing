@@ -5,8 +5,8 @@ int i=0;
 int k=0;
 const long interval=500;
 int grounds[] ={14,15,16,17,18};
-int greens []= {3,5,7,9,11};
-int reds []= {2,4,6,8,10};
+int greens []= {11,9,7,5,3};
+int reds []= {10,8,6,4,2};
 bool started = false;
 bool ended = true;
 /*
