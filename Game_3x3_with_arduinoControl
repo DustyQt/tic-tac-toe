@@ -1,0 +1,484 @@
+import processing.serial.*;      // libreria arduino
+Serial get;                      // para poder usar el arduino
+float direct=0;                  // para guardar el output del arduino
+float mvy=87;                     // coordenadas de control del puntero, en y
+float mvx=87;                     // coordenadas de control del puntero en x
+Square[][] grid;                 // creacion de la matriz
+int row, col, spaces;            // formato de la cuadricula
+float x, y, w, h;                // valores de la cuaricula que pasan a los metodos
+int player = 1;                  // empezar con el jugador 1
+boolean gameOver;                // mirar si el juego acabo
+int winner;                      // guarda el ganador 
+boolean play;                    // continuar jugando
+
+// boton de jugar otra vez formato
+float w_button = 200;           
+float h_button = 40;
+float x_button = (1000/2) - (w_button/2);
+float y_button = 425; 
+
+   
+void setup(){
+  size (1000,700);
+  row = 5; col = 5; spaces = 25;  
+  grid = new Square[row][col];
+  get = new Serial(this, "COM3", 9600);
+  get.bufferUntil('\n'); 
+  startGame();    // configuracion del juego
+  
+}
+
+
+
+void draw(){
+  
+  checkGameOver();  // verifica si el juego acabo
+;
+  
+  //si el juego no a acabado
+  
+  if (gameOver == false){
+    
+    // dibuja la matriz inicial
+    background(200);
+    for(int i = 0; i < row; i++){
+      for(int j = 0; j < col; j++){
+        grid[i][j].display();
+        arduinoMovement();
+      }
+    }
+
+  }
+  
+  
+  // el juego acabo-game over
+  
+  else {
+    play = false;
+    // si hay ganador pon el fondo del color del jugador
+    if (winner == 1){background(255,0,0);}
+    else if (winner == 2){background(0,0,255);}
+    else{background(0);}
+        
+    endOfGameText(winner);    // muestra el ganador
+
+    // entonces re dibuja la matriz
+    for(int i = 0; i < row; i++){
+      for(int j = 0; j < col; j++){
+        grid[i][j].display();
+      }
+    }
+    
+    playAgainButton();      //muestra el boton para jugar de nuevo
+    
+    
+  }
+ 
+}
+
+
+
+class Square{
+  
+ float xPos, yPos, s_width, s_height;    // dimensiones usadas para dibujar cada cuadrado
+ int value;                              // 1=cruz 2=circulo
+
+ Square(float x, float y, float w, float h){
+   xPos = x;
+   yPos = y;
+   s_width = w;
+   s_height = h;
+   value = 0;       // valor por default, usado para identificar un cuadro desocupado
+ }
+ 
+ // mostrar cuadro
+ // mostrar cruz o circulo cuando se deba
+ // los valores estan definidos en la funcion de click
+ void display(){
+  
+   rect(xPos, yPos, s_width, s_height);
+   if(value == 1){
+     drawCross();
+   }
+   else if(value == 2){
+     drawCircle();
+   }
+ }
+ 
+ // cuando se selecciona
+ // verifica si esta desocupado antes de escribir un circulo o cruz
+ // la unica manera de que escriba es si aun continua el juego
+ void click(float m_X, float m_Y){
+   
+   float mX = m_X;
+   float mY = m_Y;
+   
+   // solo si el cuadro ha sido seleccionado
+   if(mX > xPos && mX < xPos + s_width &&
+      mY > yPos && mY < yPos + s_height){
+      
+      if(value == 0 && play == true){
+          
+        // jugador 1 selecciona, asigna el valor y da el turno 2
+        if(player==1){
+          value = 1;
+          player = 2;
+         }
+       
+         // jugador 2 selecciona, asigna el valor y da el turno 1
+         else{
+           value = 2;
+           player = 1;
+         }
+       
+         // disminuyen los espacios tomados por los jugadores
+         spaces--;
+      }
+    }   
+ }
+
+ // caracteristicas de la cruz
+ void drawCross(){
+   stroke(255,0,0); strokeWeight(7);
+   line(xPos+20, yPos+20, xPos+(s_width-20), yPos+(s_height-20));
+   line(xPos+20, yPos+(s_height-20), xPos+(s_width-20), yPos+20);
+   stroke(0); strokeWeight(1);
+ }
+ 
+ // caracteristicas del circulo 
+ void drawCircle(){
+   stroke(0,0,255); strokeWeight(7);
+   ellipse(xPos+(s_width/2), yPos+(s_height/2), s_width-25, s_height-25);
+   stroke(0); strokeWeight(1);
+ }
+ 
+ // para obtener el valor de cada cuadro y poder verificar si hay un ganador
+ int getValue(){
+   return value;
+ }
+}
+
+//arduino driver
+void arduinoMovement(){
+  
+    if (mvx>60 && mvx<650 && mvy>60 && mvy<650){
+      if (player==1){
+      fill(#ffffff);
+      circle(mvx, mvy, 20);     
+    if(direct==1){
+      fill(#ffffff);
+      circle(mvx, mvy, 20);
+      mvy=mvy+125;
+      direct=0;
+    }else if(direct==2){
+     fill(#ffffff);
+      circle(mvx, mvy, 20);
+      mvy=mvy-125;
+      direct=0;
+    }else if(direct==3){
+     fill(#ffffff);
+      circle(mvx, mvy, 20);
+      mvx=mvx-125;
+      direct=0;
+    }else if(direct==4){
+     fill(#ffffff);
+      circle(mvx, mvy, 20);
+      mvx=mvx+125;
+      direct=0;
+    }else if (direct==5){
+       for(int i = 0; i < row; i++){
+    for(int j = 0; j < col; j++){
+      grid[i][j].click(mvx,mvy);
+    }
+  }
+    }
+   }
+   if (player==2){
+      fill(#ffffff);
+      circle(mvx, mvy, 20);     
+    if(direct==6){
+      fill(#ffffff);
+      circle(mvx, mvy, 20);
+      mvy=mvy+125;
+      direct=0;
+    }else if(direct==7){
+     fill(#ffffff);
+      circle(mvx, mvy, 20);
+      mvy=mvy-125;
+      direct=0;
+    }else if(direct==8){
+     fill(#ffffff);
+      circle(mvx, mvy, 20);
+      mvx=mvx-125;
+      direct=0;
+    }else if(direct==9){
+     fill(#ffffff);
+      circle(mvx, mvy, 20);
+      mvx=mvx+125;
+      direct=0;
+    }else if (direct==10){
+       for(int i = 0; i < row; i++){
+    for(int j = 0; j < col; j++){
+      grid[i][j].click(mvx,mvy);
+    }
+  }
+    }
+    
+   }
+   
+   
+    }else{
+     mvx=87;
+     mvy=87;
+    }
+}
+// si se presiona el boton, usar 
+void mousePressed(){
+/*  for(int i = 0; i < row; i++){
+    for(int j = 0; j < col; j++){
+      grid[i][j].click(mouseX, mouseY);
+    }
+  }*/
+  
+  if (mouseX > x_button && mouseX < x_button + w_button &&
+      mouseY > y_button && mouseY < y_button + h_button){
+    startGame();
+  }
+}
+
+// verifcar si el juego acabo
+// si los espacios estan llenos o, 5 en linea, en L o en z
+
+void checkGameOver(){
+  
+ int r = row;
+ int c = col;
+ 
+ // tres en fila
+ for (int i = 0; i < r; i++){
+   if(grid[i][0].getValue() == 1 && grid[i][1].getValue() ==  1 && grid[i][2].getValue() == 1 ){
+     gameOver = true;
+     winner = 1;
+   }
+   if(grid[i][0].getValue() == 2 && grid[i][1].getValue() ==  2 && grid[i][2].getValue() == 2 ){
+     gameOver = true;
+     winner = 2;
+   }
+     if( grid[i][1].getValue() ==  1 && grid[i][2].getValue() == 1 && grid[i][3].getValue() == 1 ){
+     gameOver = true;
+     winner = 1;
+   }
+   if( grid[i][1].getValue() ==  2 && grid[i][2].getValue() == 2 && grid[i][3].getValue() == 2 ){
+     gameOver = true;
+     winner = 2;
+   }
+     if(grid[i][2].getValue() == 1 && grid[i][3].getValue() == 1 && grid[i][4].getValue() == 1){
+     gameOver = true;
+     winner = 1;
+   }
+   if(grid[i][2].getValue() == 2 && grid[i][3].getValue() == 2 && grid[i][4].getValue() == 2){
+     gameOver = true;
+     winner = 2;
+   }
+ }
+ 
+ // tres en columna
+ for (int i = 0; i < c; i++){
+   if(grid[0][i].getValue() == 1 && grid[1][i].getValue() ==  1 && grid[2][i].getValue() == 1 ){
+     gameOver = true;
+     winner = 1;
+   }
+   if(grid[0][i].getValue() == 2 && grid[1][i].getValue() ==  2 && grid[2][i].getValue() == 2 ){
+     gameOver = true;
+     winner = 2;
+   }
+    if( grid[1][i].getValue() ==  1 && grid[2][i].getValue() == 1 && grid[3][i].getValue() == 1){
+     gameOver = true;
+     winner = 1;
+   }
+   if(grid[1][i].getValue() ==  2 && grid[2][i].getValue() == 2 && grid[3][i].getValue() == 2 ){
+     gameOver = true;
+     winner = 2;
+   }
+    if( grid[2][i].getValue() == 1 && grid[3][i].getValue() == 1 && grid[4][i].getValue() == 1){
+     gameOver = true;
+     winner = 1;
+   }
+   if( grid[2][i].getValue() == 2 && grid[3][i].getValue() == 2 && grid[4][i].getValue() == 2){
+     gameOver = true;
+     winner = 2;
+   }
+ }
+ 
+ // arriba izquierda a abajo derecha
+ for(int i=0;i<c;i++){
+ if(i<3){
+   if(grid[0][i].getValue() == 1 && grid[1][i+1].getValue() ==  1 && grid[2][i+2].getValue() == 1 ){
+       gameOver = true;
+       winner = 1;
+   }
+   if(grid[0][i].getValue() == 2 && grid[1][i+1].getValue() ==  2 && grid[2][i+2].getValue() == 2 ){
+       gameOver = true;
+       winner = 2;
+   }
+   if(grid[1][i].getValue() == 1 && grid[2][i+1].getValue() ==  1 && grid[3][i+2].getValue() == 1 ){
+       gameOver = true;
+       winner = 1;
+   }
+   if(grid[1][i].getValue() == 2 && grid[2][i+1].getValue() ==  2 && grid[3][i+2].getValue() == 2 ){
+       gameOver = true;
+       winner = 2;
+   }
+    if(grid[2][i].getValue() == 1 && grid[3][i+1].getValue() ==  1 && grid[4][i+2].getValue() == 1 ){
+       gameOver = true;
+       winner = 1;
+   }
+   if(grid[2][i].getValue() == 2 && grid[3][i+1].getValue() ==  2 && grid[4][i+2].getValue() == 2 ){
+       gameOver = true;
+       winner = 2;
+   }
+ }else{
+     if(grid[0][i].getValue() == 1 && grid[1][3].getValue() ==  1 && grid[2][4].getValue() == 1 ){
+       gameOver = true;
+       winner = 1;
+   }
+   if(grid[0][i].getValue() == 2 && grid[1][3].getValue() ==  2 && grid[2][4].getValue() == 2 ){
+       gameOver = true;
+       winner = 2;
+   }
+   if(grid[1][i].getValue() == 1 && grid[2][3].getValue() ==  1 && grid[3][4].getValue() == 1 ){
+       gameOver = true;
+       winner = 1;
+   }
+   if(grid[1][i].getValue() == 2 && grid[2][3].getValue() ==  2 && grid[3][4].getValue() == 2 ){
+       gameOver = true;
+       winner = 2;
+   }
+    if(grid[2][i].getValue() == 1 && grid[3][3].getValue() ==  1 && grid[4][4].getValue() == 1 ){
+       gameOver = true;
+       winner = 1;
+   }
+   if(grid[2][i].getValue() == 2 && grid[3][3].getValue() ==  2 && grid[4][4].getValue() == 2 ){
+       gameOver = true;
+       winner = 2;
+   }
+ }
+ 
+ 
+ }
+ // abajo izquierda a arriba derecha
+  for(int i=0;i<c;i++){
+   if(i<3){
+     if(grid[4][i].getValue() == 1 && grid[3][i+1].getValue() ==  1 && grid[2][i+2].getValue() == 1 ){
+         gameOver = true;
+         winner = 1;
+     }
+     if(grid[4][i].getValue() == 2 && grid[3][i+1].getValue() ==  2 && grid[2][i+2].getValue() == 2 ){
+         gameOver = true;
+         winner = 2;
+     }
+       if(grid[3][i].getValue() == 1 && grid[2][i+1].getValue() ==  1 && grid[1][i+2].getValue() == 1 ){
+         gameOver = true;
+         winner = 1;
+     }
+     if(grid[3][i].getValue() == 2 && grid[2][i+1].getValue() ==  2 && grid[1][i+2].getValue() == 2 ){
+         gameOver = true;
+         winner = 2;
+     }
+         if(grid[2][i].getValue() == 1 && grid[1][i+1].getValue() ==  1 && grid[0][i+2].getValue() == 1 ){
+         gameOver = true;
+         winner = 1;
+     }
+     if(grid[2][i].getValue() == 2 && grid[1][i+1].getValue() ==  2 && grid[0][i+2].getValue() == 2 ){
+         gameOver = true;
+         winner = 2;
+     }
+ }else{
+    if(grid[4][i].getValue() == 1 && grid[3][3].getValue() ==  1 && grid[2][4].getValue() == 1 ){
+         gameOver = true;
+         winner = 1;
+     }
+     if(grid[4][i].getValue() == 2 && grid[3][3].getValue() ==  2 && grid[2][4].getValue() == 2 ){
+         gameOver = true;
+         winner = 2;
+     }
+       if(grid[3][i].getValue() == 1 && grid[2][3].getValue() ==  1 && grid[1][4].getValue() == 1 ){
+         gameOver = true;
+         winner = 1;
+     }
+     if(grid[3][i].getValue() == 2 && grid[2][3].getValue() ==  2 && grid[1][4].getValue() == 2 ){
+         gameOver = true;
+         winner = 2;
+     }
+         if(grid[2][i].getValue() == 1 && grid[1][3].getValue() ==  1 && grid[0][4].getValue() == 1 ){
+         gameOver = true;
+         winner = 1;
+     }
+     if(grid[2][i].getValue() == 2 && grid[1][3].getValue() ==  2 && grid[0][4].getValue() == 2 ){
+         gameOver = true;
+         winner = 2;
+     }
+ }
+ 
+ }
+ 
+
+ 
+ //no hay mas espacios para llenar
+ if (spaces == 0){
+   gameOver = true;
+ }
+ 
+}
+  
+ void endOfGameText(int win){
+   float xPosition = 700, yPosition = 350;
+   stroke(255);
+   textSize(20);
+   if (win==1){text("Ganador: Jugador 1!!!", xPosition, yPosition);}
+   if (win==2){text("Ganador: Jugador 2!!!", xPosition, yPosition);}
+   if (win==0){text("Game Over. No hay ganador!!!", xPosition-35, yPosition);}
+    stroke(0);
+ }
+
+ void playAgainButton(){
+   fill(200);
+   stroke(200);
+   rect(x_button, y_button, w_button, h_button); 
+   stroke(0);
+   fill(0);
+   text("JUGAR OTRA VEZ", x_button+15, y_button+30);
+   fill(255);
+ }
+ 
+ void startGame(){
+   
+   player = 1;          // empezar el juego con el jugador 1
+   play = true;         // empieza el juego
+   spaces = 25;          // 25 espacios vacios en el tablero
+   gameOver = false;    // el juego continua hasta que exista game over
+   winner = 0;          // aun no se tienen ganador hasta que winner tenga 1 o 2
+   
+   background(200);    
+   
+   // pocisiones iniciales de los cuadrados
+   x = 25;          
+   y = 25;
+   w = 125; h = 125;
+  
+   // ajustes para crear los cuadrados
+   for(int i = 0; i < row; i++){
+    for(int j = 0; j < col; j++){
+      grid[i][j] = new Square(x, y, w, h);
+      x += w;  // ajuste de x con respecto al ancho
+    }
+    y += h;    // despues de una fila, ajuste de altura
+    x = 25;    // reseteo de x despues de una fila
+  }
+ }
+ 
+ //obtener el output del serial
+  void serialEvent (Serial get)
+    {
+      direct = float(get.readStringUntil('\n'));
+    }  
