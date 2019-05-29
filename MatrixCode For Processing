@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 unsigned long previousMillis=0;
-
+int i=0;
+int k=0;
 const long interval=500;
 int grounds[] ={14,15,16,17,18};
 int greens []= {3,5,7,9,11};
@@ -14,11 +15,11 @@ bool ended = true;
   const long interval=500;
   */
 int matrix[5][5]={
-  {1,0,0,0,0},
-  {0,1,0,0,0},
-  {0,0,1,0,0},
-  {0,0,0,1,0},
-  {0,0,0,0,1}
+  {0,0,0,0,0},
+  {0,0,0,0,0},
+  {0,0,0,0,0},
+  {0,0,0,0,0},
+  {0,0,0,0,2}
 };
 
 void setup() {
@@ -30,12 +31,14 @@ void setup() {
   for(int i=14;i<19;i++){
     pinMode(i,OUTPUT);    
   }
-  Serial.begin(9600);
+  Serial.begin(60000);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-    Serial.println(Serial.available());
+  i=0;
+  k=0;
+
    while(Serial.available() > 0){
    char incomingByte = Serial.read();
    if(incomingByte == '<')
@@ -48,15 +51,17 @@ void loop() {
      ended = true;
      break; // Break out of the while loop
    }
-   else{
-    Serial.print("Works");
-     for(int i=0; i<5;i++){
-      for(int j=0; j<5;j++){
-        int number = incomingByte-'0';
+   else{    
+         if(i>=5){
+          k++;
+          i=0;
+        }
+        int number = incomingByte- '0';
         Serial.print(number);
-           matrix[i][j]= number;
-      }
-     }
+         matrix[i][k]= number;
+         i++;
+        
+     
     }
   }
   matrixDisplay(matrix);
